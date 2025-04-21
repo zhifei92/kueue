@@ -26,14 +26,19 @@ GO_VERSION := $(shell awk '/^go /{print $$2}' go.mod|head -n1)
 
 GIT_TAG ?= $(shell git describe --tags --dirty --always)
 # Image URL to use all building/pushing image targets
-PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+# PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+PLATFORMS ?= linux/amd64
 CLI_PLATFORMS ?= linux/amd64,linux/arm64,darwin/amd64,darwin/arm64
 VIZ_PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
 DOCKER_BUILDX_CMD ?= docker buildx
 IMAGE_BUILD_CMD ?= $(DOCKER_BUILDX_CMD) build
+# IMAGE_BUILD_CMD ?= $(DOCKER_BUILDX_CMD) build
+IMAGE_BUILD_CMD ?= docker build
 IMAGE_BUILD_EXTRA_OPTS ?=
-STAGING_IMAGE_REGISTRY := us-central1-docker.pkg.dev/k8s-staging-images
-IMAGE_REGISTRY ?= $(STAGING_IMAGE_REGISTRY)/kueue
+# STAGING_IMAGE_REGISTRY := us-central1-docker.pkg.dev/k8s-staging-images
+STAGING_IMAGE_REGISTRY := hub.jdcloud.com/jdos
+# IMAGE_REGISTRY ?= $(STAGING_IMAGE_REGISTRY)/kueue
+IMAGE_REGISTRY ?= $(STAGING_IMAGE_REGISTRY)
 IMAGE_NAME := kueue
 IMAGE_REPO ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME)
 IMAGE_TAG ?= $(IMAGE_REPO):$(GIT_TAG)
