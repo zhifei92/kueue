@@ -31,12 +31,10 @@ PLATFORMS ?= linux/amd64
 CLI_PLATFORMS ?= linux/amd64,linux/arm64,darwin/amd64,darwin/arm64
 VIZ_PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
 DOCKER_BUILDX_CMD ?= docker buildx
-IMAGE_BUILD_CMD ?= $(DOCKER_BUILDX_CMD) build
 # IMAGE_BUILD_CMD ?= $(DOCKER_BUILDX_CMD) build
 IMAGE_BUILD_CMD ?= docker build
 IMAGE_BUILD_EXTRA_OPTS ?=
-# STAGING_IMAGE_REGISTRY := us-central1-docker.pkg.dev/k8s-staging-images
-STAGING_IMAGE_REGISTRY := hub.jdcloud.com/jdos
+STAGING_IMAGE_REGISTRY ?= hub.jdcloud.com/jdos
 # IMAGE_REGISTRY ?= $(STAGING_IMAGE_REGISTRY)/kueue
 IMAGE_REGISTRY ?= $(STAGING_IMAGE_REGISTRY)
 IMAGE_NAME := kueue
@@ -243,7 +241,7 @@ ifndef ignore-not-found
   ignore-not-found = false
 endif
 
-clean-manifests = (cd config/components/manager && $(KUSTOMIZE) edit set image controller=us-central1-docker.pkg.dev/k8s-staging-images/kueue/kueue:$(RELEASE_BRANCH))
+clean-manifests = (cd config/components/manager && $(KUSTOMIZE) edit set image controller=hub.jdcloud.com/jdos/kueue/kueue:$(RELEASE_BRANCH))
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
@@ -270,6 +268,10 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 .PHONY: site-server
 site-server: hugo
 	(cd site; $(HUGO) server)
+
+.PHONY: crd-1.19
+crd-1.19:
+	helm package charts/kueue-crd-k8s1.19
 
 ##@ Release
 .PHONY: artifacts
@@ -312,7 +314,7 @@ update-security-insights: yq
 ##@ Debug
 
 # Build an image that can be used with kubectl debug
-# Developers don't need to build this image, as it will be available as us-central1-docker.pkg.dev/k8s-staging-images/kueue/debug
+# Developers don't need to build this image, as it will be available as hub.jdcloud.com/jdos/kueue/debug
 .PHONY: debug-image-push
 debug-image-push: ## Build and push the debug image to the registry
 	$(IMAGE_BUILD_CMD) \
@@ -342,7 +344,7 @@ importer-image-build:
 importer-image-push: PUSH=--push
 importer-image-push: importer-image-build
 
-# Build a docker local us-central1-docker.pkg.dev/k8s-staging-images/kueue/importer image
+# Build a docker local hub.jdcloud.com/jdos/kueue/importer image
 .PHONY: importer-image
 importer-image: PLATFORMS=linux/amd64
 importer-image: PUSH=--load
@@ -372,7 +374,7 @@ kueue-viz-image-build:
 kueue-viz-image-push: PUSH=--push
 kueue-viz-image-push: kueue-viz-image-build
 
-# Build a docker local us-central1-docker.pkg.dev/k8s-staging-images/kueue/kueue-viz image
+# Build a docker local hub.jdcloud.com/jdos/kueue/kueue-viz image
 .PHONY: kueue-viz-image
 kueue-viz-image: VIZ_PLATFORMS=linux/amd64
 kueue-viz-image: PUSH=--load

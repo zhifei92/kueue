@@ -16,7 +16,7 @@ controllerManager:
   #    enabled: true
   manager:
     image:
-      repository: us-central1-docker.pkg.dev/k8s-staging-images/kueue/kueue
+      repository: us-central1-docker.pkg.dev/k8s-staging-images/kueue
       # This should be set to 'IfNotPresent' for released version      
       pullPolicy: Always
     podAnnotations: {}
@@ -97,7 +97,7 @@ managerConfig:
       matchExpressions:
         - key: kubernetes.io/metadata.name
           operator: NotIn
-          values: [ kube-system, kueue-system ]
+          values: [ kube-system, kueue-system, chogori ]
     #internalCertManagement:
     #  enable: false
     #  webhookServiceName: ""
@@ -115,7 +115,7 @@ managerConfig:
       - "kubeflow.org/xgboostjob"
       - "workload.codeflare.dev/appwrapper"
       - "pod"
-      - "deployment" (requires enabling pod integration)
+      - "deployment"
     #  - "statefulset" (requires enabling pod integration)
     #  - "leaderworkerset.x-k8s.io/leaderworkerset" (requires enabling pod integration)
     #  externalFrameworks:
@@ -150,10 +150,8 @@ webhookService:
       protocol: TCP
       targetPort: 9443
   type: ClusterIP
-
 # kueue-viz dashboard
 enableKueueViz: false
-
 metrics:
   prometheusNamespace: monitoring
   serviceMonitor:

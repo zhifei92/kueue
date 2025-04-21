@@ -67,7 +67,7 @@ E2E_KIND_VERSION ?= kindest/node:v$(E2E_K8S_FULL_VERSION)
 KIND_CLUSTER_NAME ?= kind
 
 GIT_TAG ?= $(shell git describe --tags --dirty --always)
-STAGING_IMAGE_REGISTRY := us-central1-docker.pkg.dev/k8s-staging-images
+STAGING_IMAGE_REGISTRY := hub.jdcloud.com/jdos
 IMAGE_REGISTRY ?= $(STAGING_IMAGE_REGISTRY)/kueue
 IMAGE_NAME := kueue
 IMAGE_REPO ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME)

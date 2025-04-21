@@ -23,7 +23,7 @@ DEST_CHART_DIR=${DEST_CHART_DIR:-bin/}
 EXTRA_TAG=${EXTRA_TAG:-$(git branch --show-current)} 
 GIT_TAG=${GIT_TAG:-$(git describe --tags --dirty --always)}
 
-STAGING_IMAGE_REGISTRY=${STAGING_IMAGE_REGISTRY:-us-central1-docker.pkg.dev/k8s-staging-images}
+STAGING_IMAGE_REGISTRY=${STAGING_IMAGE_REGISTRY:-hub.jdcloud.com/jdos}
 IMAGE_REGISTRY=${IMAGE_REGISTRY:-${STAGING_IMAGE_REGISTRY}/kueue}
 HELM_CHART_REPO=${HELM_CHART_REPO:-${STAGING_IMAGE_REGISTRY}/kueue/charts}
 IMAGE_REPO=${IMAGE_REPO:-${IMAGE_REGISTRY}/kueue}

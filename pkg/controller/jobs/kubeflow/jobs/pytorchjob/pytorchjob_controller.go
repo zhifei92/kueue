@@ -66,6 +66,7 @@ func init() {
 // +kubebuilder:rbac:groups=kubeflow.org,resources=pytorchjobs,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=kubeflow.org,resources=pytorchjobs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=kubeflow.org,resources=pytorchjobs/finalizers,verbs=get;update
+// +kubebuilder:rbac:groups=kubeflow.org,resources=notebooks,verbs=get;list;watch;
 // +kubebuilder:rbac:groups=kueue.x-k8s.io,resources=workloads,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=kueue.x-k8s.io,resources=workloads/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=kueue.x-k8s.io,resources=workloads/finalizers,verbs=update

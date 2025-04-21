@@ -203,6 +203,14 @@ rules:
       - patch
       - update
   - apiGroups:
+      - kubeflow.org
+    resources:
+      - notebooks
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - kueue.x-k8s.io
     resources:
       - admissionchecks
