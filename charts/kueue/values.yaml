@@ -97,7 +97,7 @@ managerConfig:
       matchExpressions:
         - key: kubernetes.io/metadata.name
           operator: NotIn
-          values: [ kube-system, kueue-system, chogori ]
+          values: [ kube-system, kueue-system, chogori, brolly, kube-node-lease, kube-public ]
     #internalCertManagement:
     #  enable: false
     #  webhookServiceName: ""
@@ -116,7 +116,7 @@ managerConfig:
       - "workload.codeflare.dev/appwrapper"
       - "pod"
       - "deployment"
-    #  - "statefulset" (requires enabling pod integration)
+      - "statefulset"
     #  - "leaderworkerset.x-k8s.io/leaderworkerset" (requires enabling pod integration)
     #  externalFrameworks:
     #  - "Foo.v1.example.com"
