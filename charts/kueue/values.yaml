@@ -16,7 +16,7 @@ controllerManager:
   #    enabled: true
   manager:
     image:
-      repository: us-central1-docker.pkg.dev/k8s-staging-images/kueue
+      repository: hub.jdcloud.com/jdos/kueue
       # This should be set to 'IfNotPresent' for released version      
       pullPolicy: Always
     podAnnotations: {}

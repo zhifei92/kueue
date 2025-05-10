@@ -70,6 +70,10 @@ func (wh *Webhook) Default(ctx context.Context, obj runtime.Object) error {
 	log := ctrl.LoggerFrom(ctx).WithName("statefulset-webhook")
 	log.V(5).Info("Propagating queue-name")
 
+	log.V(5).Info("Applying chogori queue")
+	if err := jobframework.ApplyChogoriLocalQueue(ctx, wh.client, ss.Object()); err != nil {
+		return err
+	}
 	jobframework.ApplyDefaultLocalQueue(ss.Object(), wh.queues.DefaultLocalQueueExist)
 	suspend, err := jobframework.WorkloadShouldBeSuspended(ctx, ss.Object(), wh.client, wh.manageJobsWithoutQueueName, wh.managedJobsNamespaceSelector)
 	if err != nil {

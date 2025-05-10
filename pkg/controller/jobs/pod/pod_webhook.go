@@ -168,6 +168,11 @@ func (w *PodWebhook) Default(ctx context.Context, obj runtime.Object) error {
 			return err
 		}
 
+		log.V(5).Info("Applying chogori queue")
+		if err := jobframework.ApplyChogoriLocalQueue(ctx, w.client, pod.Object()); err != nil {
+			return err
+		}
+
 		// Local queue defaulting
 		if features.Enabled(features.LocalQueueDefaulting) &&
 			jobframework.QueueNameForObject(pod.Object()) == "" &&

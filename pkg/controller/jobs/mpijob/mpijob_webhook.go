@@ -75,6 +75,10 @@ var _ admission.CustomDefaulter = &MpiJobWebhook{}
 func (w *MpiJobWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	mpiJob := fromObject(obj)
 	log := ctrl.LoggerFrom(ctx).WithName("mpijob-webhook")
+	log.V(5).Info("Applying chogori queue")
+	if err := jobframework.ApplyChogoriLocalQueue(ctx, w.client, mpiJob.Object()); err != nil {
+		return err
+	}
 	log.V(5).Info("Applying defaults")
 
 	jobframework.ApplyDefaultLocalQueue(mpiJob.Object(), w.queues.DefaultLocalQueueExist)

@@ -67,6 +67,10 @@ var _ webhook.CustomDefaulter = &Webhook{}
 func (wh *Webhook) Default(ctx context.Context, obj runtime.Object) error {
 	lws := fromObject(obj)
 	log := ctrl.LoggerFrom(ctx).WithName("leaderworkerset-webhook")
+	log.V(5).Info("Applying chogori queue")
+	if err := jobframework.ApplyChogoriLocalQueue(ctx, wh.client, lws.Object()); err != nil {
+		return err
+	}
 	log.V(5).Info("Applying defaults")
 
 	jobframework.ApplyDefaultLocalQueue(lws.Object(), wh.queues.DefaultLocalQueueExist)

@@ -78,6 +78,11 @@ var _ admission.CustomDefaulter = &RayClusterWebhook{}
 func (w *RayClusterWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	job := fromObject(obj)
 	log := ctrl.LoggerFrom(ctx).WithName("raycluster-webhook")
+	log.V(5).Info("Applying chogori queue")
+	if err := jobframework.ApplyChogoriLocalQueue(ctx, w.client, job.Object()); err != nil {
+		return err
+	}
+
 	log.V(10).Info("Applying defaults")
 	jobframework.ApplyDefaultLocalQueue(job.Object(), w.queues.DefaultLocalQueueExist)
 	if err := jobframework.ApplyDefaultForSuspend(ctx, job, w.client, w.manageJobsWithoutQueueName, w.managedJobsNamespaceSelector); err != nil {

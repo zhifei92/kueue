@@ -33,6 +33,10 @@ import (
 	"sigs.k8s.io/kueue/pkg/queue"
 )
 
+const (
+	ChogoriQueueNameLabel = "chogori.queue/resource-queue-id"
+)
+
 func ApplyDefaultForSuspend(ctx context.Context, job GenericJob, k8sClient client.Client,
 	manageJobsWithoutQueueName bool, managedJobsNamespaceSelector labels.Selector) error {
 	suspend, err := WorkloadShouldBeSuspended(ctx, job.Object(), k8sClient, manageJobsWithoutQueueName, managedJobsNamespaceSelector)
@@ -116,4 +120,29 @@ func ApplyDefaultForManagedBy(job GenericJob, queues *queue.Manager, cache *cach
 			}
 		}
 	}
+}
+
+func ApplyChogoriLocalQueue(ctx context.Context, k8sClient client.Client, jobObj client.Object) error {
+	ns := corev1.Namespace{}
+	err := k8sClient.Get(ctx, client.ObjectKey{Name: jobObj.GetNamespace()}, &ns)
+	if err != nil {
+		return fmt.Errorf("failed to get namespace: %w", err)
+	}
+	if ns.Labels == nil || ns.Labels[ChogoriQueueNameLabel] == "" {
+		return nil
+	}
+
+	if QueueNameForObject(jobObj) == "" {
+		// Do not apply the chogori queue-name for a job whose owner is already managed by Kueue
+		if IsOwnerManagedByKueueForObject(jobObj) {
+			return nil
+		}
+		labels := jobObj.GetLabels()
+		if labels == nil {
+			labels = make(map[string]string, 1)
+		}
+		labels[constants.QueueLabel] = ns.Labels[ChogoriQueueNameLabel]
+		jobObj.SetLabels(labels)
+	}
+	return nil
 }

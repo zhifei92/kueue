@@ -77,6 +77,10 @@ var _ admission.CustomDefaulter = &JobWebhook{}
 func (w *JobWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	job := fromObject(obj)
 	log := ctrl.LoggerFrom(ctx).WithName("job-webhook")
+	log.V(5).Info("Applying chogori queue")
+	if err := jobframework.ApplyChogoriLocalQueue(ctx, w.client, job.Object()); err != nil {
+		return err
+	}
 	log.V(5).Info("Applying defaults")
 
 	jobframework.ApplyDefaultLocalQueue(job.Object(), w.queues.DefaultLocalQueueExist)

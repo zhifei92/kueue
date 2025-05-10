@@ -67,6 +67,10 @@ func (wh *Webhook) Default(ctx context.Context, obj runtime.Object) error {
 	deployment := fromObject(obj)
 
 	log := ctrl.LoggerFrom(ctx).WithName("deployment-webhook")
+	log.V(5).Info("Applying chogori queue")
+	if err := jobframework.ApplyChogoriLocalQueue(ctx, wh.client, deployment.Object()); err != nil {
+		return err
+	}
 	log.V(5).Info("Propagating queue-name")
 
 	jobframework.ApplyDefaultLocalQueue(deployment.Object(), wh.queues.DefaultLocalQueueExist)
