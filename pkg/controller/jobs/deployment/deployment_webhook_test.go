@@ -149,7 +149,11 @@ func TestDefault(t *testing.T) {
 			ctx, _ := utiltesting.ContextWithLog(t)
 			features.SetFeatureGateDuringTest(t, features.LocalQueueDefaulting, tc.localQueueDefaulting)
 			t.Cleanup(jobframework.EnableIntegrationsForTest(t, "pod"))
-			builder := utiltesting.NewClientBuilder()
+			builder := utiltesting.NewClientBuilder().
+				WithObjects(
+					utiltesting.MakeNamespace("default"),
+					utiltesting.MakeNamespace(""),
+				)
 			client := builder.Build()
 			cqCache := cache.New(client)
 			queueManager := queue.NewManager(client, cqCache)

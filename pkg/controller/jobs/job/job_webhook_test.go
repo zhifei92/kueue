@@ -707,7 +707,9 @@ func TestDefault(t *testing.T) {
 			ctx, _ := utiltesting.ContextWithLog(t)
 
 			clientBuilder := utiltesting.NewClientBuilder(kfmpi.AddToScheme).
-				WithObjects(utiltesting.MakeNamespace("default")).
+				WithObjects(
+					utiltesting.MakeNamespace("default"),
+					utiltesting.MakeNamespace("")).
 				WithRuntimeObjects(tc.objs...)
 			cl := clientBuilder.Build()
 			cqCache := cache.New(cl)

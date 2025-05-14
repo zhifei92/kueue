@@ -160,7 +160,12 @@ func TestDefault(t *testing.T) {
 			t.Cleanup(jobframework.EnableIntegrationsForTest(t, tc.enableIntegrations...))
 			ctx, _ := utiltesting.ContextWithLog(t)
 
-			builder := utiltesting.NewClientBuilder()
+			builder := utiltesting.NewClientBuilder().
+				WithObjects(
+					utiltesting.MakeNamespace("ns"),
+					utiltesting.MakeNamespace(""),
+					utiltesting.MakeNamespace("default"),
+				)
 			cli := builder.Build()
 			cqCache := cache.New(cli)
 			queueManager := queue.NewManager(cli, cqCache)

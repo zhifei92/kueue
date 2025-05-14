@@ -369,7 +369,11 @@ func TestDefault(t *testing.T) {
 
 			ctx, _ := utiltesting.ContextWithLog(t)
 
-			clientBuilder := utiltesting.NewClientBuilder().WithObjects(utiltesting.MakeNamespace("default"))
+			clientBuilder := utiltesting.NewClientBuilder().
+				WithObjects(
+					utiltesting.MakeNamespace("default"),
+					utiltesting.MakeNamespace(""),
+				)
 			cl := clientBuilder.Build()
 			cqCache := cache.New(cl)
 			queueManager := queue.NewManager(cl, cqCache)
@@ -398,6 +402,7 @@ func TestDefault(t *testing.T) {
 				}
 			}
 			webhook := &MpiJobWebhook{
+				client:                     cl,
 				manageJobsWithoutQueueName: false,
 				queues:                     queueManager,
 				cache:                      cqCache,

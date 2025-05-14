@@ -425,6 +425,7 @@ func TestDefault(t *testing.T) {
 				}
 			}
 			webhook := &JobSetWebhook{
+				client:                     cl,
 				manageJobsWithoutQueueName: false,
 				queues:                     queueManager,
 				cache:                      cqCache,

@@ -108,7 +108,12 @@ func TestValidateDefault(t *testing.T) {
 			features.SetFeatureGateDuringTest(t, features.ManagedJobsNamespaceSelector, false)
 			features.SetFeatureGateDuringTest(t, features.LocalQueueDefaulting, tc.localQueueDefaulting)
 			ctx, _ := utiltesting.ContextWithLog(t)
-			builder := utiltesting.NewClientBuilder()
+			builder := utiltesting.NewClientBuilder().
+				WithObjects(
+					utiltesting.MakeNamespace("ns"),
+					utiltesting.MakeNamespace(""),
+					utiltesting.MakeNamespace("default"),
+				)
 			cli := builder.Build()
 			cqCache := cache.New(cli)
 			queueManager := queue.NewManager(cli, cqCache)
@@ -120,6 +125,7 @@ func TestValidateDefault(t *testing.T) {
 			}
 
 			wh := &RayClusterWebhook{
+				client:                     cli,
 				manageJobsWithoutQueueName: tc.manageAll,
 				queues:                     queueManager,
 				cache:                      cqCache,

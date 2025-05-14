@@ -284,6 +284,7 @@ func TestBaseWebhookDefault(t *testing.T) {
 			}
 
 			w := &jobframework.BaseWebhook{
+				Client:                     cl,
 				ManageJobsWithoutQueueName: tc.manageJobsWithoutQueueName,
 				FromObject:                 makeTestGenericJob().fromObject,
 				Queues:                     queueManager,

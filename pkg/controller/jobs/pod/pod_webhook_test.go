@@ -518,7 +518,10 @@ func TestDefault(t *testing.T) {
 			features.SetFeatureGateDuringTest(t, features.ManagedJobsNamespaceSelector, tc.enableManagedJobsNamespaceSelector)
 			features.SetFeatureGateDuringTest(t, features.LocalQueueDefaulting, tc.localQueueDefaulting)
 			t.Cleanup(jobframework.EnableIntegrationsForTest(t, tc.enableIntegrations...))
-			builder := utiltesting.NewClientBuilder(rayv1.AddToScheme, kfmpi.AddToScheme, kftraining.AddToScheme, appsv1.AddToScheme)
+			builder := utiltesting.NewClientBuilder(rayv1.AddToScheme, kfmpi.AddToScheme, kftraining.AddToScheme, appsv1.AddToScheme).
+				WithObjects(
+					utiltesting.MakeNamespace("default"),
+				)
 			builder = builder.WithObjects(tc.initObjects...)
 			cli := builder.Build()
 
