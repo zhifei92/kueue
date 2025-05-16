@@ -103,8 +103,12 @@ func getPodOptions(integrationOpts map[string]any) (*configapi.PodIntegrationOpt
 	return podOpts, nil
 }
 
+// Add "get", "list", "watch" permissions for all Kubernetes resources (including custom resources)
+// to prevent pod creation failures when kueue-webhook intercepts pods from non-kueue supported resources
+// (such as daemonsets or other custom resources) due to insufficient permissions
+// +kubebuilder:rbac:groups=*,resources=*,verbs=get;list;watch
+
 // +kubebuilder:webhook:path=/mutate--v1-pod,mutating=true,failurePolicy=fail,sideEffects=None,groups="",resources=pods,verbs=create,versions=v1,name=mpod.kb.io,admissionReviewVersions=v1
-// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 
 var _ admission.CustomDefaulter = &PodWebhook{}
 

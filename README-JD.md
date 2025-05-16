@@ -1,6 +1,10 @@
 # 说明
 当前集群社区release-0.11分支开发迭代,release-0.11即为主分支
 # 发布版本
+## 版本号
+以**v0.11-jd-0.1.0**为例  
+- v0.11：对应社区的release-0.11  
+- jd-0.1.0：jd后的三位分别是“主版本号”、“次版本号”、“修订版本号”
 ## 0.运行测试套件确保所有测试通过
 ```shell
 make test
@@ -8,7 +12,8 @@ make test
 ## 1.创建发布分支
 ```shell
 # 设置必要的环境变量
-export GIT_TAG=${NEW_VERSION} # v0.11-jd-0.1.0
+export NEW_VERSION=xxx # 如，v0.11-jd-0.1.0
+export GIT_TAG=${NEW_VERSION}
 export IMAGE_REGISTRY=hub.jdcloud.com/jdos  # 使用你的镜像仓库
 export IMAGE_REPO=${IMAGE_REGISTRY}/kueue
 
