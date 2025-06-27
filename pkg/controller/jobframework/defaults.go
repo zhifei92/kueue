@@ -22,8 +22,10 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kueue "sigs.k8s.io/kueue/apis/kueue/v1beta1"
@@ -35,6 +37,8 @@ import (
 
 const (
 	ChogoriQueueNameLabel = "chogori.queue/resource-queue-id"
+	// SkipQueueNameLabel 标记 job 不应被自动添加 queue name label
+	SkipQueueNameLabel = "kueue.x-k8s.io/skip-queue-name-label"
 )
 
 func ApplyDefaultForSuspend(ctx context.Context, job GenericJob, k8sClient client.Client,
@@ -128,7 +132,10 @@ func ApplyChogoriLocalQueue(ctx context.Context, k8sClient client.Client, jobObj
 	if err != nil {
 		return fmt.Errorf("failed to get namespace: %w", err)
 	}
-	if ns.Labels == nil || ns.Labels[ChogoriQueueNameLabel] == "" {
+
+	if shouldInject, err := shouldInjectQueueName(ctx, k8sClient, ns, jobObj); err != nil {
+		return fmt.Errorf("failed to get check: %w", err)
+	} else if !shouldInject {
 		return nil
 	}
 
@@ -145,4 +152,51 @@ func ApplyChogoriLocalQueue(ctx context.Context, k8sClient client.Client, jobObj
 		jobObj.SetLabels(labels)
 	}
 	return nil
+}
+
+func shouldInjectQueueName(ctx context.Context, k8sClient client.Client, ns corev1.Namespace, jobObj client.Object) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
+	queueName := ""
+	if ns.Labels != nil {
+		queueName = ns.Labels[ChogoriQueueNameLabel]
+	}
+	if queueName == "" {
+		return false, nil
+	}
+
+	if exists, err := localQueueExists(ctx, k8sClient, jobObj.GetNamespace(), queueName); err != nil {
+		return false, fmt.Errorf("failed to get local queue: %w", err)
+	} else if !exists {
+		log.V(2).Info("Local queue not found", "queueName", queueName)
+		return false, nil
+	}
+
+	if skipSpecificObject(jobObj, ns) {
+		log.V(2).Info("Used SkipQueueNameLabel to skip specific objects.", "object", jobObj.GetName())
+		return false, nil
+	}
+	return true, nil
+}
+
+func localQueueExists(ctx context.Context, k8sClient client.Client, namespace, name string) (bool, error) {
+	queue := kueue.LocalQueue{}
+	err := k8sClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, &queue)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func skipSpecificObject(object client.Object, namespace corev1.Namespace) bool {
+	objLabels := object.GetLabels()
+	if objLabels == nil || namespace.Labels == nil {
+		return false
+	}
+	if objLabels[SkipQueueNameLabel] != "true" || namespace.Labels[SkipQueueNameLabel] != "true" {
+		return false
+	}
+	return true
 }
