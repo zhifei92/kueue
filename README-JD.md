@@ -1,5 +1,10 @@
 # 说明
-当前集群社区release-0.11分支开发迭代,release-0.11即为主分支
+当前集群社区release-0.11分支开发迭代:
+- release-0.11即为主分支
+- release-0.11-dev只做合并，不能直接在其开发
+- feature-xxx 新功能开发，基于release-0.11-dev创建，开发完成后，合并到release-0.11-dev，删除feature-xxx
+- release-v0.11-jd-xxx 如上一步的新功能开发完成后基于release-0.11-dev创建，创建release分支提交测试，测试过程中的任何更改，都在此分支。测试通过后合并到release-0.11和release-0.11-dev。然后在基于release-0.11分支打tag， 如v0.11-jd-0.1.0进行发版本。
+- hotfix时一般从release-0.11分支创建，最后需要合并到release-0.11和release-0.11-dev
 # 发布版本
 ## 版本号
 以**v0.11-jd-0.1.0**为例  
@@ -17,8 +22,8 @@ export GIT_TAG=${NEW_VERSION}
 export IMAGE_REGISTRY=hub.jdcloud.com/jdos  # 使用你的镜像仓库
 export IMAGE_REPO=${IMAGE_REGISTRY}/kueue
 
-# 从主分支创建发布分支
-git checkout -b release-${NEW_VERSION}
+# 切换到创建发布分支
+git checkout release-${NEW_VERSION}
 
 # 推送发布分支到远程仓库
 git push origin release-${NEW_VERSION}
