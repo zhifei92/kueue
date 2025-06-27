@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kueue "sigs.k8s.io/kueue/apis/kueue/v1beta1"
@@ -154,6 +155,7 @@ func ApplyChogoriLocalQueue(ctx context.Context, k8sClient client.Client, jobObj
 }
 
 func shouldInjectQueueName(ctx context.Context, k8sClient client.Client, ns corev1.Namespace, jobObj client.Object) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
 	queueName := ""
 	if ns.Labels != nil {
 		queueName = ns.Labels[ChogoriQueueNameLabel]
@@ -165,10 +167,12 @@ func shouldInjectQueueName(ctx context.Context, k8sClient client.Client, ns core
 	if exists, err := localQueueExists(ctx, k8sClient, jobObj.GetNamespace(), queueName); err != nil {
 		return false, fmt.Errorf("failed to get local queue: %w", err)
 	} else if !exists {
+		log.V(2).Info("Local queue not found", "queueName", queueName)
 		return false, nil
 	}
 
 	if skipSpecificObject(jobObj, ns) {
+		log.V(2).Info("Used SkipQueueNameLabel to skip specific objects.", "object", jobObj.GetName())
 		return false, nil
 	}
 	return true, nil
