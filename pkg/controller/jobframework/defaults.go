@@ -171,7 +171,7 @@ func shouldInjectQueueName(ctx context.Context, k8sClient client.Client, ns core
 		return false, nil
 	}
 
-	if skipSpecificObject(jobObj, ns) {
+	if skipSpecificObject(jobObj) {
 		log.V(2).Info("Used SkipQueueNameLabel to skip specific objects.", "object", jobObj.GetName())
 		return false, nil
 	}
@@ -190,13 +190,13 @@ func localQueueExists(ctx context.Context, k8sClient client.Client, namespace, n
 	return true, nil
 }
 
-func skipSpecificObject(object client.Object, namespace corev1.Namespace) bool {
+func skipSpecificObject(object client.Object) bool {
 	objLabels := object.GetLabels()
-	if objLabels == nil || namespace.Labels == nil {
+	if objLabels == nil {
 		return false
 	}
-	if objLabels[SkipQueueNameLabel] != "true" || namespace.Labels[SkipQueueNameLabel] != "true" {
-		return false
+	if objLabels[SkipQueueNameLabel] == "true" {
+		return true
 	}
-	return true
+	return false
 }
