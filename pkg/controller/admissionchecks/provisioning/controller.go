@@ -75,10 +75,11 @@ func newProvisioningConfigHelper(c client.Client) (*provisioningConfigHelper, er
 }
 
 type Controller struct {
-	client client.Client
-	record record.EventRecorder
-	helper *provisioningConfigHelper
-	clock  clock.Clock
+	client                    client.Client
+	record                    record.EventRecorder
+	helper                    *provisioningConfigHelper
+	clock                     clock.Clock
+	skipNodeSelectorInjection bool
 }
 
 type workloadInfo struct {
@@ -97,16 +98,17 @@ var _ reconcile.Reconciler = (*Controller)(nil)
 // +kubebuilder:rbac:groups=kueue.x-k8s.io,resources=admissionchecks,verbs=get;list;watch
 // +kubebuilder:rbac:groups=kueue.x-k8s.io,resources=provisioningrequestconfigs,verbs=get;list;watch
 
-func NewController(client client.Client, record record.EventRecorder) (*Controller, error) {
+func NewController(client client.Client, record record.EventRecorder, skipNodeSelectorInjection bool) (*Controller, error) {
 	helper, err := newProvisioningConfigHelper(client)
 	if err != nil {
 		return nil, err
 	}
 	return &Controller{
-		client: client,
-		record: record,
-		helper: helper,
-		clock:  realClock,
+		client:                    client,
+		record:                    record,
+		helper:                    helper,
+		clock:                     realClock,
+		skipNodeSelectorInjection: skipNodeSelectorInjection,
 	}, nil
 }
 
@@ -308,7 +310,7 @@ func (c *Controller) syncOwnedProvisionRequest(
 				}
 				if err != nil {
 					// it's a not found, so create it
-					_, err := c.createPodTemplate(ctx, wl, ptName, ps, psa)
+					_, err := c.createPodTemplate(ctx, wl, ptName, ps, psa, pt)
 					if err != nil {
 						msg := fmt.Sprintf("Error creating PodTemplate %q: %v", ptName, err)
 						return nil, c.handleError(ctx, wl, ac, msg, err)
@@ -377,7 +379,7 @@ func (c *Controller) handleError(ctx context.Context, wl *kueue.Workload, ac *ku
 	return errors.Join(err, patchErr)
 }
 
-func (c *Controller) createPodTemplate(ctx context.Context, wl *kueue.Workload, name string, ps *kueue.PodSet, psa *kueue.PodSetAssignment) (*corev1.PodTemplate, error) {
+func (c *Controller) createPodTemplate(ctx context.Context, wl *kueue.Workload, name string, ps *kueue.PodSet, psa *kueue.PodSetAssignment, pt *corev1.PodTemplate) (*corev1.PodTemplate, error) {
 	newPt := &corev1.PodTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -395,9 +397,12 @@ func (c *Controller) createPodTemplate(ctx context.Context, wl *kueue.Workload, 
 	if err := ctrl.SetControllerReference(wl, newPt, c.client.Scheme()); err != nil {
 		return nil, err
 	}
-
+	skipNodeSelectorInjection := c.skipNodeSelectorInjection
+	if v, ok := pt.Annotations[constants.JDOSJobNotInjectSelectorAnnotationKey]; ok && v == "true" {
+		skipNodeSelectorInjection = true
+	}
 	// apply the admission node selectors to the Template
-	psi, err := podset.FromAssignment(ctx, c.client, psa, ptr.Deref(psa.Count, ps.Count))
+	psi, err := podset.FromAssignment(ctx, c.client, psa, ptr.Deref(psa.Count, ps.Count), skipNodeSelectorInjection)
 	if err != nil {
 		return nil, err
 	}

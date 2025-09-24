@@ -115,6 +115,15 @@ Defaults to false; therefore, those jobs are not managed and if they are created
 unsuspended, they will start immediately.</p>
 </td>
 </tr>
+<tr><td><code>skipNodeSelectorInjection</code> <B>[Required]</B><br/>
+<code>bool</code>
+</td>
+<td>
+   <p>SkipNodeSelectorInjection is a global configuration flag that controls whether
+Kueue should automatically inject node labels from the ResourceFlavor into Pods.
+If set to true, Kueue will skip injecting nodeSelector labels for all Pods.</p>
+</td>
+</tr>
 <tr><td><code>managedJobsNamespaceSelector</code> <B>[Required]</B><br/>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.28/#labelselector-v1-meta"><code>k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector</code></a>
 </td>

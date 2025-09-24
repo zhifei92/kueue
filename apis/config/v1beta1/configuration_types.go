@@ -48,6 +48,11 @@ type Configuration struct {
 	// unsuspended, they will start immediately.
 	ManageJobsWithoutQueueName bool `json:"manageJobsWithoutQueueName"`
 
+	// SkipNodeSelectorInjection is a global configuration flag that controls whether
+	// Kueue should automatically inject node labels from the ResourceFlavor into Pods.
+	// If set to true, Kueue will skip injecting nodeSelector labels for all Pods.
+	SkipNodeSelectorInjection bool `json:"skipNodeSelectorInjection"`
+
 	// ManagedJobsNamespaceSelector provides a namespace-based mechanism to exempt jobs
 	// from management by Kueue.
 	//

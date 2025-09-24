@@ -980,6 +980,7 @@ func TestEncode(t *testing.T) {
 				"apiVersion":                 "config.kueue.x-k8s.io/v1beta1",
 				"kind":                       "Configuration",
 				"manageJobsWithoutQueueName": false,
+				"skipNodeSelectorInjection":  false,
 				"health":                     map[string]any{},
 				"metrics":                    map[string]any{},
 				"webhook":                    map[string]any{},
@@ -1021,6 +1022,7 @@ func TestEncode(t *testing.T) {
 					"qps":   int64(configapi.DefaultClientConnectionQPS),
 				},
 				"manageJobsWithoutQueueName": false,
+				"skipNodeSelectorInjection":  false,
 				"managedJobsNamespaceSelector": map[string]any{
 					"matchExpressions": []any{map[string]any{
 						"key":      corev1.LabelMetadataName,

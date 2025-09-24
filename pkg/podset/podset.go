@@ -53,7 +53,7 @@ type PodSetInfo struct {
 
 // FromAssignment returns a PodSetInfo based on the provided assignment and an error if unable
 // to get any of the referenced flavors.
-func FromAssignment(ctx context.Context, client client.Client, assignment *kueue.PodSetAssignment, defaultCount int32) (PodSetInfo, error) {
+func FromAssignment(ctx context.Context, client client.Client, assignment *kueue.PodSetAssignment, defaultCount int32, skipNodeSelectorInjection bool) (PodSetInfo, error) {
 	processedFlvs := sets.New[kueue.ResourceFlavorReference]()
 	info := PodSetInfo{
 		Name:         assignment.Name,
@@ -67,6 +67,9 @@ func FromAssignment(ctx context.Context, client client.Client, assignment *kueue
 		info.SchedulingGates = append(info.SchedulingGates, corev1.PodSchedulingGate{
 			Name: kueuealpha.TopologySchedulingGate,
 		})
+	}
+	if skipNodeSelectorInjection {
+		return info, nil
 	}
 	for _, flvRef := range assignment.Flavors {
 		if processedFlvs.Has(flvRef) {

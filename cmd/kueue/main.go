@@ -303,7 +303,7 @@ func setupControllers(ctx context.Context, mgr ctrl.Manager, cCache *cache.Cache
 		if err := provisioning.ServerSupportsProvisioningRequest(mgr); err != nil {
 			setupLog.Info("Skipping provisioning controller setup: Provisioning Requests not supported (Possible cause: missing or unsupported cluster-autoscaler)")
 		} else {
-			ctrl, err := provisioning.NewController(mgr.GetClient(), mgr.GetEventRecorderFor("kueue-provisioning-request-controller"))
+			ctrl, err := provisioning.NewController(mgr.GetClient(), mgr.GetEventRecorderFor("kueue-provisioning-request-controller"), cfg.SkipNodeSelectorInjection)
 			if err != nil {
 				setupLog.Error(err, "Could not create the provisioning controller")
 				os.Exit(1)
@@ -347,6 +347,7 @@ func setupControllers(ctx context.Context, mgr ctrl.Manager, cCache *cache.Cache
 
 	opts := []jobframework.Option{
 		jobframework.WithManageJobsWithoutQueueName(cfg.ManageJobsWithoutQueueName),
+		jobframework.WithSkipNodeSelectorInjection(cfg.SkipNodeSelectorInjection),
 		jobframework.WithWaitForPodsReady(cfg.WaitForPodsReady),
 		jobframework.WithKubeServerVersion(serverVersionFetcher),
 		jobframework.WithEnabledFrameworks(cfg.Integrations.Frameworks),

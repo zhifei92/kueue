@@ -44,4 +44,12 @@ const (
 	// ManagedByKueueLabelKey label that signalize that an object is managed by Kueue
 	ManagedByKueueLabelKey   = "kueue.x-k8s.io/managed"
 	ManagedByKueueLabelValue = "true"
+
+	// Annotations and labels injected by JDOS
+
+	// JDOSJobNotInjectSelectorAnnotationKey is the annotation key used to indicate
+	// that Kueue should not automatically inject node labels from the ResourceFlavor
+	// into the Pod. If this annotation is present on a Pod with the value "true",
+	// the injection of nodeSelector labels by Kueue will be skipped.
+	JDOSJobNotInjectSelectorAnnotationKey = "jdos.jd.com/skip-node-selector-injection"
 )

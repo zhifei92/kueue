@@ -239,7 +239,7 @@ func TestFromAssignment(t *testing.T) {
 			features.SetFeatureGateDuringTest(t, features.TopologyAwareScheduling, tc.enableTopologyAwareScheduling)
 			client := utiltesting.NewClientBuilder().WithLists(&kueue.ResourceFlavorList{Items: tc.flavors}).Build()
 
-			gotInfo, gotError := FromAssignment(ctx, client, tc.assignment, tc.defaultCount)
+			gotInfo, gotError := FromAssignment(ctx, client, tc.assignment, tc.defaultCount, false)
 
 			if diff := cmp.Diff(tc.wantError, gotError); diff != "" {
 				t.Errorf("Unexpected error (-want/+got):\n%s", diff)

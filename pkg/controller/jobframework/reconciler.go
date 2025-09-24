@@ -80,6 +80,7 @@ type JobReconciler struct {
 	client                       client.Client
 	record                       record.EventRecorder
 	manageJobsWithoutQueueName   bool
+	skipNodeSelectorInjection    bool
 	managedJobsNamespaceSelector labels.Selector
 	waitForPodsReady             bool
 	labelKeysToCopy              []string
@@ -88,6 +89,7 @@ type JobReconciler struct {
 
 type Options struct {
 	ManageJobsWithoutQueueName   bool
+	SkipNodeSelectorInjection    bool
 	ManagedJobsNamespaceSelector labels.Selector
 	WaitForPodsReady             bool
 	KubeServerVersion            *kubeversion.ServerVersionFetcher
@@ -117,6 +119,14 @@ func ProcessOptions(opts ...Option) Options {
 func WithManageJobsWithoutQueueName(f bool) Option {
 	return func(o *Options) {
 		o.ManageJobsWithoutQueueName = f
+	}
+}
+
+// WithSkipNodeSelectorInjection indicates if the controller should skip
+// injecting node selectors into pods.
+func WithSkipNodeSelectorInjection(f bool) Option {
+	return func(o *Options) {
+		o.SkipNodeSelectorInjection = f
 	}
 }
 
@@ -224,6 +234,7 @@ func NewReconciler(
 		client:                       client,
 		record:                       record,
 		manageJobsWithoutQueueName:   options.ManageJobsWithoutQueueName,
+		skipNodeSelectorInjection:    options.SkipNodeSelectorInjection,
 		managedJobsNamespaceSelector: options.ManagedJobsNamespaceSelector,
 		waitForPodsReady:             options.WaitForPodsReady,
 		labelKeysToCopy:              options.LabelKeysToCopy,
@@ -712,7 +723,7 @@ func (r *JobReconciler) ensureOneWorkload(ctx context.Context, job GenericJob, o
 		}
 	} else {
 		var err error
-		match, toDelete, err = FindMatchingWorkloads(ctx, r.client, job)
+		match, toDelete, err = FindMatchingWorkloads(ctx, r.client, job, r.skipNodeSelectorInjection)
 		if err != nil {
 			log.Error(err, "Unable to list child workloads")
 			return nil, err
@@ -783,7 +794,7 @@ func (r *JobReconciler) ensureOneWorkload(ctx context.Context, job GenericJob, o
 	return match, nil
 }
 
-func FindMatchingWorkloads(ctx context.Context, c client.Client, job GenericJob) (match *kueue.Workload, toDelete []*kueue.Workload, err error) {
+func FindMatchingWorkloads(ctx context.Context, c client.Client, job GenericJob, skipNodeSelectorInjection bool) (match *kueue.Workload, toDelete []*kueue.Workload, err error) {
 	object := job.Object()
 
 	workloads := &kueue.WorkloadList{}
@@ -794,7 +805,7 @@ func FindMatchingWorkloads(ctx context.Context, c client.Client, job GenericJob)
 
 	for i := range workloads.Items {
 		w := &workloads.Items[i]
-		isEquivalent, err := EquivalentToWorkload(ctx, c, job, w)
+		isEquivalent, err := EquivalentToWorkload(ctx, c, job, w, skipNodeSelectorInjection)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -834,7 +845,7 @@ func (r *JobReconciler) ensurePrebuiltWorkloadInSync(ctx context.Context, wl *ku
 	if cj, implements := job.(ComposableJob); implements {
 		equivalent, err = cj.EquivalentToWorkload(ctx, r.client, wl)
 	} else {
-		equivalent, err = EquivalentToWorkload(ctx, r.client, job, wl)
+		equivalent, err = EquivalentToWorkload(ctx, r.client, job, wl, r.skipNodeSelectorInjection)
 	}
 
 	if !equivalent || err != nil {
@@ -855,11 +866,11 @@ func (r *JobReconciler) ensurePrebuiltWorkloadInSync(ctx context.Context, wl *ku
 
 // expectedRunningPodSets gets the expected podsets during the job execution, returns nil if the workload has no reservation or
 // the admission does not match.
-func expectedRunningPodSets(ctx context.Context, c client.Client, wl *kueue.Workload) []kueue.PodSet {
+func expectedRunningPodSets(ctx context.Context, c client.Client, wl *kueue.Workload, skipNodeSelectorInjection bool) []kueue.PodSet {
 	if !workload.HasQuotaReservation(wl) {
 		return nil
 	}
-	info, err := getPodSetsInfoFromStatus(ctx, c, wl)
+	info, err := getPodSetsInfoFromStatus(ctx, c, wl, skipNodeSelectorInjection)
 	if err != nil {
 		return nil
 	}
@@ -885,7 +896,7 @@ func expectedRunningPodSets(ctx context.Context, c client.Client, wl *kueue.Work
 }
 
 // EquivalentToWorkload checks if the job corresponds to the workload
-func EquivalentToWorkload(ctx context.Context, c client.Client, job GenericJob, wl *kueue.Workload) (bool, error) {
+func EquivalentToWorkload(ctx context.Context, c client.Client, job GenericJob, wl *kueue.Workload, skipNodeSelectorInjection bool) (bool, error) {
 	owner := metav1.GetControllerOf(wl)
 	// Indexes don't work in unit tests, so we explicitly check for the
 	// owner here.
@@ -904,7 +915,10 @@ func EquivalentToWorkload(ctx context.Context, c client.Client, job GenericJob, 
 	}
 	jobPodSets := clearMinCountsIfFeatureDisabled(getPodSets)
 
-	if runningPodSets := expectedRunningPodSets(ctx, c, wl); runningPodSets != nil {
+	if v, ok := job.Object().GetAnnotations()[constants.JDOSJobNotInjectSelectorAnnotationKey]; ok && v == "true" {
+		skipNodeSelectorInjection = true
+	}
+	if runningPodSets := expectedRunningPodSets(ctx, c, wl, skipNodeSelectorInjection); runningPodSets != nil {
 		if equality.ComparePodSetSlices(jobPodSets, runningPodSets, workload.IsAdmitted(wl)) {
 			return true, nil
 		}
@@ -939,7 +953,12 @@ func (r *JobReconciler) updateWorkloadToMatchJob(ctx context.Context, job Generi
 
 // startJob will unsuspend the job, and also inject the node affinity.
 func (r *JobReconciler) startJob(ctx context.Context, job GenericJob, object client.Object, wl *kueue.Workload) error {
-	info, err := getPodSetsInfoFromStatus(ctx, r.client, wl)
+	skipNodeSelectorInjection := r.skipNodeSelectorInjection
+	if v, ok := job.Object().GetAnnotations()[constants.JDOSJobNotInjectSelectorAnnotationKey]; ok && v == "true" {
+		skipNodeSelectorInjection = true
+	}
+
+	info, err := getPodSetsInfoFromStatus(ctx, r.client, wl, skipNodeSelectorInjection)
 	if err != nil {
 		return err
 	}
@@ -1106,7 +1125,7 @@ func extractPriorityFromPodSets(podSets []kueue.PodSet) string {
 
 // getPodSetsInfoFromStatus extracts podSetsInfo from workload status, based on
 // admission, and admission checks.
-func getPodSetsInfoFromStatus(ctx context.Context, c client.Client, w *kueue.Workload) ([]podset.PodSetInfo, error) {
+func getPodSetsInfoFromStatus(ctx context.Context, c client.Client, w *kueue.Workload, skipNodeSelectorInjection bool) ([]podset.PodSetInfo, error) {
 	if len(w.Status.Admission.PodSetAssignments) == 0 {
 		return nil, nil
 	}
@@ -1114,7 +1133,7 @@ func getPodSetsInfoFromStatus(ctx context.Context, c client.Client, w *kueue.Wor
 	podSetsInfo := make([]podset.PodSetInfo, len(w.Status.Admission.PodSetAssignments))
 
 	for i, psAssignment := range w.Status.Admission.PodSetAssignments {
-		info, err := podset.FromAssignment(ctx, c, &psAssignment, w.Spec.PodSets[i].Count)
+		info, err := podset.FromAssignment(ctx, c, &psAssignment, w.Spec.PodSets[i].Count, skipNodeSelectorInjection)
 		if err != nil {
 			return nil, err
 		}

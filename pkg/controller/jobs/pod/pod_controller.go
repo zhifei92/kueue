@@ -116,11 +116,12 @@ func isPod(ref *metav1.OwnerReference) bool {
 
 type Reconciler struct {
 	*jobframework.JobReconciler
-	expectationsStore *expectations.Store
+	expectationsStore         *expectations.Store
+	skipNodeSelectorInjection bool
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return r.ReconcileGenericJob(ctx, req, NewPod(WithExcessPodExpectations(r.expectationsStore), WithClock(realClock)))
+	return r.ReconcileGenericJob(ctx, req, NewPod(WithExcessPodExpectations(r.expectationsStore), WithClock(realClock), WithSkipNodeSelectorInjection(r.skipNodeSelectorInjection)))
 }
 
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -142,22 +143,24 @@ func NewJob() jobframework.GenericJob {
 
 func NewReconciler(c client.Client, record record.EventRecorder, opts ...jobframework.Option) jobframework.JobReconcilerInterface {
 	return &Reconciler{
-		JobReconciler:     jobframework.NewReconciler(c, record, opts...),
-		expectationsStore: expectations.NewStore("finalizedPods"),
+		JobReconciler:             jobframework.NewReconciler(c, record, opts...),
+		expectationsStore:         expectations.NewStore("finalizedPods"),
+		skipNodeSelectorInjection: jobframework.ProcessOptions(opts...).SkipNodeSelectorInjection,
 	}
 }
 
 type Pod struct {
-	pod                   corev1.Pod
-	key                   types.NamespacedName
-	isFound               bool
-	isGroup               bool
-	unretriableGroup      *bool
-	list                  corev1.PodList
-	absentPods            int
-	excessPodExpectations *expectations.Store
-	satisfiedExcessPods   bool
-	clock                 clock.Clock
+	pod                       corev1.Pod
+	key                       types.NamespacedName
+	isFound                   bool
+	isGroup                   bool
+	unretriableGroup          *bool
+	list                      corev1.PodList
+	absentPods                int
+	excessPodExpectations     *expectations.Store
+	satisfiedExcessPods       bool
+	skipNodeSelectorInjection bool
+	clock                     clock.Clock
 }
 
 var (
@@ -170,8 +173,9 @@ var (
 )
 
 type options struct {
-	excessPodExpectations *expectations.Store
-	clock                 clock.Clock
+	excessPodExpectations     *expectations.Store
+	clock                     clock.Clock
+	skipNodeSelectorInjection bool
 }
 
 type PodOption func(*options)
@@ -179,6 +183,14 @@ type PodOption func(*options)
 func WithExcessPodExpectations(store *expectations.Store) PodOption {
 	return func(o *options) {
 		o.excessPodExpectations = store
+	}
+}
+
+// WithSkipNodeSelectorInjection indicates if the controller should skip
+// injecting node selectors into pods.
+func WithSkipNodeSelectorInjection(f bool) PodOption {
+	return func(o *options) {
+		o.skipNodeSelectorInjection = f
 	}
 }
 
@@ -199,8 +211,9 @@ func NewPod(opts ...PodOption) *Pod {
 	}
 
 	return &Pod{
-		excessPodExpectations: options.excessPodExpectations,
-		clock:                 options.clock,
+		excessPodExpectations:     options.excessPodExpectations,
+		clock:                     options.clock,
+		skipNodeSelectorInjection: options.skipNodeSelectorInjection,
 	}
 }
 
@@ -1094,7 +1107,7 @@ func (p *Pod) FindMatchingWorkloads(ctx context.Context, c client.Client, r reco
 
 	groupName := podGroupName(p.pod)
 	if groupName == "" {
-		return jobframework.FindMatchingWorkloads(ctx, c, p)
+		return jobframework.FindMatchingWorkloads(ctx, c, p, p.skipNodeSelectorInjection)
 	}
 
 	// Find a matching workload first if there is one.
@@ -1335,7 +1348,7 @@ func (p *Pod) waitingForReplacementPodsCondition(wl *kueue.Workload) (*metav1.Co
 func (p *Pod) EquivalentToWorkload(ctx context.Context, c client.Client, wl *kueue.Workload) (bool, error) {
 	// For single job using base EquivalentToWorkload method.
 	if !p.isGroup {
-		return jobframework.EquivalentToWorkload(ctx, c, p, wl)
+		return jobframework.EquivalentToWorkload(ctx, c, p, wl, p.skipNodeSelectorInjection)
 	}
 
 	podSets, err := p.constructGroupPodSets()
