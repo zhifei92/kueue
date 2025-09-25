@@ -97,7 +97,7 @@ managerConfig:
       matchExpressions:
         - key: kubernetes.io/metadata.name
           operator: NotIn
-          values: [ kube-system, kueue-system, chogori, brolly, kube-node-lease, kube-public, ingress-nginx-system, oss-csi-system, jpfs-system, image-builder-system, kubeflow, kgateway-system, lws-system, joybuilder-system ]
+          values: [ kube-system, kueue-system, chogori, brolly, kube-node-lease, kube-public, ingress-nginx-system, oss-csi-system, jpfs-system, image-builder-system, kubeflow, kgateway-system, lws-system, joybuilder-system, jcm ]
     #internalCertManagement:
     #  enable: false
     #  webhookServiceName: ""
