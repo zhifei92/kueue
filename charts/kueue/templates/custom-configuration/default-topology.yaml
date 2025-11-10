@@ -1,0 +1,11 @@
+{{- if .Values.customTopology.enabled }}
+apiVersion: kueue.x-k8s.io/v1alpha1
+kind: Topology
+metadata:
+  name: "default-topology"
+spec:
+  levels:
+    - nodeLabel: topology.jdos.io/topology-cluster
+    - nodeLabel: topology.jdos.io/topology-pod
+    - nodeLabel: topology.jdos.io/topology-su
+{{- end }}
