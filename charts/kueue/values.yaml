@@ -3,6 +3,9 @@
 # Declare variables to be passed into your templates.
 nameOverride: ""
 fullnameOverride: ""
+# Toggle generation of the default Topology custom resource.
+customTopology:
+  enabled: false
 # Enable each function, like kustomize https://github.com/kubernetes-sigs/kueue/blob/main/config/default/kustomization.yaml
 enablePrometheus: false
 # Enable x509 automated certificate management using cert-manager (cert-manager.io)
@@ -11,7 +14,9 @@ enableCertManager: false
 enableVisibilityAPF: false
 # Customize controllerManager
 controllerManager:
-  #featureGates:
+  featureGates:
+    - name: TopologyAwareScheduling
+      enabled: true
   #  - name: PartialAdmission
   #    enabled: true
   manager:
@@ -117,7 +122,7 @@ managerConfig:
       - "pod"
       - "deployment"
       - "statefulset"
-    #  - "leaderworkerset.x-k8s.io/leaderworkerset" (requires enabling pod integration)
+      - "leaderworkerset.x-k8s.io/leaderworkerset"
     #  externalFrameworks:
     #  - "Foo.v1.example.com"
     #fairSharing:
