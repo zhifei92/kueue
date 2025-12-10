@@ -39,6 +39,7 @@ import (
 	kueue "sigs.k8s.io/kueue/apis/kueue/v1beta1"
 	"sigs.k8s.io/kueue/pkg/cache"
 	"sigs.k8s.io/kueue/pkg/controller/constants"
+	"sigs.k8s.io/kueue/pkg/features"
 	"sigs.k8s.io/kueue/pkg/metrics"
 	"sigs.k8s.io/kueue/pkg/resources"
 	"sigs.k8s.io/kueue/pkg/scheduler/flavorassigner"
@@ -126,7 +127,10 @@ type Target struct {
 // order to make room for wl.
 func (p *Preemptor) GetTargets(log logr.Logger, wl workload.Info, assignment flavorassigner.Assignment, snapshot *cache.Snapshot) []*Target {
 	cq := snapshot.ClusterQueue(wl.ClusterQueue)
-	tasRequests := assignment.WorkloadsTopologyRequests(&wl, cq)
+	var tasRequests cache.WorkloadTASRequests
+	if features.Enabled(features.TopologyAwareScheduling) {
+		tasRequests = assignment.WorkloadsTopologyRequests(&wl, cq)
+	}
 	return p.getTargets(&preemptionCtx{
 		log:               log,
 		preemptor:         wl,
