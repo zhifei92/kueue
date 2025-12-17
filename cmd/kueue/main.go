@@ -29,6 +29,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	corev1 "k8s.io/api/core/v1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -42,6 +43,7 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
@@ -338,6 +340,11 @@ func setupControllers(ctx context.Context, mgr ctrl.Manager, cCache *cache.Cache
 			setupLog.Error(err, "Could not setup TAS controller", "controller", failedCtrl)
 			os.Exit(1)
 		}
+		// Ensure default-topology exists
+		if err := ensureDefaultTopology(ctx, mgr.GetClient()); err != nil {
+			setupLog.Error(err, "Could not ensure default-topology exists")
+
+		}
 	}
 
 	if failedWebhook, err := webhooks.Setup(mgr); err != nil {
@@ -464,4 +471,41 @@ func apply(configFile string) (ctrl.Options, configapi.Configuration, error) {
 	}
 	setupLog.Info("Successfully loaded configuration", "config", cfgStr)
 	return options, cfg, nil
+}
+
+// ensureDefaultTopology checks if the default-topology exists, and creates it if it doesn't
+func ensureDefaultTopology(ctx context.Context, c client.Client) error {
+	const topologyName = "default-topology"
+	topology := &kueuealpha.Topology{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: topologyName,
+		},
+		Spec: kueuealpha.TopologySpec{
+			Levels: []kueuealpha.TopologyLevel{
+				{NodeLabel: "topology.jdos.io/topology-cluster"},
+				{NodeLabel: "topology.jdos.io/topology-pod"},
+				{NodeLabel: "topology.jdos.io/topology-su"},
+			},
+		},
+	}
+
+	// Check if topology already exists
+	existing := &kueuealpha.Topology{}
+	err := c.Get(ctx, client.ObjectKey{Name: topologyName}, existing)
+	if err == nil {
+		setupLog.Info("default-topology already exists, skipping creation")
+		return nil
+	}
+
+	if !apierrors.IsNotFound(err) {
+		return err
+	}
+
+	// Topology doesn't exist, create it
+	if err := c.Create(ctx, topology); err != nil {
+		return err
+	}
+
+	setupLog.Info("Created default-topology", "name", topologyName)
+	return nil
 }

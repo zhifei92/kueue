@@ -9,8 +9,6 @@ metadata:
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "kueue.fullname" . }}-serving-cert
     {{- end }}
     controller-gen.kubebuilder.io/version: v0.17.2
-    "helm.sh/hook": pre-install,pre-upgrade  # 安装和升级前执行
-    "helm.sh/hook-weight": "-5"              # 权重确保优先执行
   name: topologies.kueue.x-k8s.io
 spec:
   conversion:

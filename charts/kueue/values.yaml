@@ -3,9 +3,6 @@
 # Declare variables to be passed into your templates.
 nameOverride: ""
 fullnameOverride: ""
-# Toggle generation of the default Topology custom resource.
-customTopology:
-  enabled: true
 # Enable each function, like kustomize https://github.com/kubernetes-sigs/kueue/blob/main/config/default/kustomization.yaml
 enablePrometheus: false
 # Enable x509 automated certificate management using cert-manager (cert-manager.io)
