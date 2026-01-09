@@ -1,0 +1,10 @@
+controllerManager:
+  replicas: 3
+  manager:
+    resources:
+      limits:
+        cpu: "16"
+        memory: 32Gi
+      requests:
+        cpu: "4"
+        memory: 8Gi
