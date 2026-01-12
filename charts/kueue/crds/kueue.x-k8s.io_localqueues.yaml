@@ -3,12 +3,16 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   labels:
-  {{- include "kueue.labels" . | nindent 4 }}
+    app.kubernetes.io/instance: kueue
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kueue
+    app.kubernetes.io/version: v0.11-jd-0.1.6.3
+    control-plane: controller-manager
+    helm.sh/chart: kueue-v0.11-jd-0.1.6.3
   annotations:
-    {{- if .Values.enableCertManager }}
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "kueue.fullname" . }}-serving-cert
-    {{- end }}
     controller-gen.kubebuilder.io/version: v0.17.2
+    meta.helm.sh/release-name: kueue
+    meta.helm.sh/release-namespace: kueue-system
   name: localqueues.kueue.x-k8s.io
 spec:
   conversion:
@@ -16,8 +20,8 @@ spec:
     webhook:
       clientConfig:
         service:
-          name: {{ include "kueue.fullname" . }}-webhook-service
-          namespace: '{{ .Release.Namespace }}'
+          name: kueue-webhook-service
+          namespace: kueue-system
           path: /convert
       conversionReviewVersions:
       - v1

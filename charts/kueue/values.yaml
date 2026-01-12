@@ -1,8 +1,8 @@
 # Default values for kueue.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-nameOverride: ""
-fullnameOverride: ""
+nameOverride: "kueue"
+fullnameOverride: "kueue"
 # Enable each function, like kustomize https://github.com/kubernetes-sigs/kueue/blob/main/config/default/kustomization.yaml
 enablePrometheus: false
 # Enable x509 automated certificate management using cert-manager (cert-manager.io)
